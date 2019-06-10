@@ -63,7 +63,7 @@ class Pump {
 
 const int pumpsCount = 2;
 Pump* pumps[pumpsCount];
-const int timeScale = 16;
+const unsigned long timeScale = 1;
 boolean wasStarted = false;
 unsigned long buttonPressedTime = 0;
 boolean started = false;
@@ -71,26 +71,26 @@ unsigned long lastStarted = 0;
 unsigned long lastMSec = 0;
 
 void setup() {
-  clock_prescale_set(clock_div_16); // уменьшим частоту
+  //clock_prescale_set(clock_div_16); // уменьшим частоту
 
-  pumps[0] = new Pump(10, 10, PB0);
-  pumps[1] = new Pump(20, 10, PB1);
+  pumps[0] = new Pump(120, 12 * 3600 - 120, PB0);
+  pumps[1] = new Pump(300, 12 * 3600 - 300, PB1);
   for (int i = 0; i < pumpsCount; i++) {
     pumps[i]->initPin();
   }
   pinMode(PB2, INPUT);
   pinMode(PB3, INPUT);
-  pinMode(PB4, INPUT);
+  pinMode(PB4, OUTPUT);
   pinMode(PB5, INPUT);
 }
 
-unsigned long diff(unsigned long now, unsigned long prev) {
-  return (now - prev) * timeScale;
+unsigned long diff(unsigned long nowTime, unsigned long prevTime) {
+  return (nowTime - prevTime) * timeScale;
 }
 
-void switchGlobalState(unsigned long now) {
-  if (diff(now, lastStarted) / 1000 > 2) {
-    lastStarted = now;
+void switchGlobalState(unsigned long nowTime) {
+  if (diff(nowTime, lastStarted) / 1000 > 2) {
+    lastStarted = nowTime;
     started = !started;
   }
 }
@@ -108,12 +108,12 @@ void loop() {
   if (digitalRead(PB2) == LOW) {
     buttonPressedTime = 0;
   } else {
-    unsigned long now = millis();
+    unsigned long nowTime = millis();
     if (buttonPressedTime == 0) {
-      buttonPressedTime = now;
+      buttonPressedTime = nowTime;
     }
-    if (diff(now, buttonPressedTime) > 500) {
-      switchGlobalState(now);
+    if (diff(nowTime, buttonPressedTime) > 500) {
+      switchGlobalState(nowTime);
     }
   }
 }
@@ -122,16 +122,23 @@ void runRoutine() {
   unsigned long nowMSec = millis();
   if (diff(nowMSec, lastMSec) / 1000 > 0) {
     lastMSec = nowMSec;
-    tickRoutine();
+    tickRoutine(nowMSec);
   }
 }
 
-void tickRoutine() {
+void tickRoutine(unsigned long nowMSec) {
+  boolean anyEnabled = false;
   for (int i = 0; i < pumpsCount; i++) {
     Pump* p = pumps[i];
     if (p->tickTime()) {
       p->switchState();
     }
+    anyEnabled |= p->isEnabled();
+  }
+  if (anyEnabled || ((nowMSec / 1000) % 2 == 0)) {
+    digitalWrite(PB4, HIGH);
+  } else {
+    digitalWrite(PB4, LOW);
   }
 }
 
@@ -140,4 +147,5 @@ void interruptAllPumps() {
     Pump* p = pumps[i];
     p->interrupt();
   }
+  digitalWrite(PB4, LOW);
 }
