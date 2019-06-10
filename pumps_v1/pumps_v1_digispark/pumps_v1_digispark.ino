@@ -2,9 +2,9 @@
 
 class Pump {
   private:
-    int timeToSwitchSec;
-    int runPeriodSec;
-    int sleepPeriodSec;
+    unsigned long timeToSwitchSec;
+    unsigned long runPeriodSec;
+    unsigned long sleepPeriodSec;
     boolean runState;
     unsigned int pin;
 
