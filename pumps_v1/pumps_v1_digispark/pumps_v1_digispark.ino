@@ -21,10 +21,10 @@ class Pump {
     }
 
   public:
-    Pump(unsigned long runTime, unsigned long sleepTime, unsigned int pumpPin) {
+    Pump(unsigned long runTime, unsigned long intervalTime, unsigned int pumpPin) {
       timeToSwitchSec = 0;
       runPeriodSec = runTime;
-      sleepPeriodSec = sleepTime;
+      sleepPeriodSec = intervalTime - runTime;
       runState = false;
       pin = pumpPin;
     }
@@ -73,8 +73,8 @@ unsigned long lastMSec = 0;
 void setup() {
   //clock_prescale_set(clock_div_16); // уменьшим частоту
 
-  pumps[0] = new Pump(120, 12UL * 3600UL - 120UL, PB0);
-  pumps[1] = new Pump(300, 12UL * 3600UL - 300UL, PB1);
+  pumps[0] = new Pump(70, 12UL * 3600UL, PB0);
+  pumps[1] = new Pump(140, 12UL * 3600UL, PB1);
   for (int i = 0; i < pumpsCount; i++) {
     pumps[i]->initPin();
   }
