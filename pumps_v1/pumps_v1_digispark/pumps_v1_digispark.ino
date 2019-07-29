@@ -1,3 +1,5 @@
+#define HOUR 3600UL
+
 #include <avr/power.h>
 
 class Pump {
@@ -68,20 +70,18 @@ boolean wasStarted = false;
 unsigned long buttonPressedTime = 0;
 boolean started = false;
 unsigned long lastStarted = 0;
-unsigned long lastMSec = 0;
+unsigned long lastSec = 0;
 
 void setup() {
   //clock_prescale_set(clock_div_16); // уменьшим частоту
 
-  pumps[0] = new Pump(70, 12UL * 3600UL, PB0);
-  pumps[1] = new Pump(140, 12UL * 3600UL, PB1);
+  pumps[0] = new Pump(60, 12UL * HOUR, PB0);
+  pumps[1] = new Pump(60, 12UL * HOUR, PB1);
   for (int i = 0; i < pumpsCount; i++) {
     pumps[i]->initPin();
   }
-  pinMode(PB2, INPUT);
-  pinMode(PB3, INPUT);
+  pinMode(PB2, INPUT_PULLUP);
   pinMode(PB4, OUTPUT);
-  pinMode(PB5, INPUT);
 }
 
 unsigned long diff(unsigned long nowTime, unsigned long prevTime) {
@@ -105,7 +105,7 @@ void loop() {
       wasStarted = false;
     }
   }
-  if (digitalRead(PB2) == LOW) {
+  if (digitalRead(PB2) == HIGH) {
     buttonPressedTime = 0;
   } else {
     unsigned long nowTime = millis();
@@ -119,14 +119,17 @@ void loop() {
 }
 
 void runRoutine() {
-  unsigned long nowMSec = millis();
-  if (diff(nowMSec, lastMSec) / 1000 > 0) {
-    lastMSec = nowMSec;
-    tickRoutine(nowMSec);
+  unsigned long nowSec = millis() / 1000;
+  unsigned long diffTime = diff(nowSec, lastSec);
+  if (diffTime > 0) {
+    lastSec = nowSec;
+    for (unsigned long i = 0; i < diffTime; ++i) {
+      tickRoutine(nowSec);
+    }
   }
 }
 
-void tickRoutine(unsigned long nowMSec) {
+void tickRoutine(unsigned long nowSec) {
   boolean anyEnabled = false;
   for (int i = 0; i < pumpsCount; i++) {
     Pump* p = pumps[i];
@@ -135,7 +138,7 @@ void tickRoutine(unsigned long nowMSec) {
     }
     anyEnabled |= p->isEnabled();
   }
-  if (anyEnabled || ((nowMSec / 1000) % 2 == 0)) {
+  if (anyEnabled || (nowSec % 2 == 0)) {
     digitalWrite(PB4, HIGH);
   } else {
     digitalWrite(PB4, LOW);
